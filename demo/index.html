@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blackjack Leaderboard Demo</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --card: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #22c55e;
+      --warn: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at top right, #1e293b, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .layout {
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      background: linear-gradient(160deg, rgba(31, 41, 55, 0.95), rgba(17, 24, 39, 0.95));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.65rem;
+    }
+
+    p {
+      color: var(--muted);
+      margin: 8px 0 0;
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr auto;
+      margin-top: 12px;
+    }
+
+    input, button {
+      border-radius: 10px;
+      border: 1px solid #374151;
+      background: #111827;
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 0.95rem;
+    }
+
+    button {
+      background: var(--accent);
+      color: #052e16;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: transform 120ms ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.92rem;
+    }
+
+    th { color: var(--muted); }
+    .status { color: var(--warn); margin-top: 8px; min-height: 1.2em; }
+
+    @media (max-width: 720px) {
+      .controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <section class="panel">
+      <h1>Blackjack Leaderboard Demo</h1>
+      <p>Small frontend showcase for your CV. Reads top scores and player history from the API.</p>
+      <div class="controls">
+        <input id="apiBase" value="http://localhost:8000" aria-label="API Base URL" />
+        <input id="playerName" placeholder="Player name (e.g. Maria)" value="Maria" aria-label="Player name" />
+        <button id="loadBtn">Load Data</button>
+      </div>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Top 10</h2>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Player</th><th>Score</th><th>Timestamp</th></tr>
+        </thead>
+        <tbody id="leaderboardBody"></tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Player History (first page)</h2>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Score</th><th>Timestamp</th></tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const leaderboardBody = document.getElementById("leaderboardBody");
+    const historyBody = document.getElementById("historyBody");
+
+    function setStatus(message) {
+      statusEl.textContent = message;
+    }
+
+    function row(cells) {
+      const tr = document.createElement("tr");
+      for (const text of cells) {
+        const td = document.createElement("td");
+        td.textContent = text;
+        tr.appendChild(td);
+      }
+      return tr;
+    }
+
+    async function loadData() {
+      const apiBase = document.getElementById("apiBase").value.trim().replace(/\/$/, "");
+      const playerName = document.getElementById("playerName").value.trim();
+
+      if (!apiBase || !playerName) {
+        setStatus("Please provide API URL and player name.");
+        return;
+      }
+
+      setStatus("Loading...");
+      leaderboardBody.innerHTML = "";
+      historyBody.innerHTML = "";
+
+      try {
+        const [scoresRes, historyRes] = await Promise.all([
+          fetch(`${apiBase}/scores`),
+          fetch(`${apiBase}/player/${encodeURIComponent(playerName)}?page=1&page_size=10`),
+        ]);
+
+        if (!scoresRes.ok) {
+          throw new Error(`GET /scores failed: ${scoresRes.status}`);
+        }
+
+        const topScores = await scoresRes.json();
+        topScores.forEach((item, idx) => {
+          leaderboardBody.appendChild(
+            row([String(idx + 1), item.player_name, String(item.score), item.timestamp])
+          );
+        });
+
+        if (historyRes.ok) {
+          const history = await historyRes.json();
+          history.items.forEach((item, idx) => {
+            historyBody.appendChild(row([String(idx + 1), String(item.score), item.timestamp]));
+          });
+          setStatus(`Loaded top scores and ${history.items.length} history rows for ${playerName}.`);
+        } else {
+          setStatus(`Top scores loaded. Player history unavailable (${historyRes.status}).`);
+        }
+      } catch (error) {
+        setStatus(`Failed to load data: ${error.message}`);
+      }
+    }
+
+    document.getElementById("loadBtn").addEventListener("click", loadData);
+    loadData();
+  </script>
+</body>
+</html>

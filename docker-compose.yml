@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: blackjack
+      POSTGRES_PASSWORD: blackjack
+      POSTGRES_DB: blackjack
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blackjack -d blackjack"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://blackjack:blackjack@postgres:5432/blackjack
+      JWT_SECRET_KEY: super-secret-token-change-me-32chars
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: 60
+      CORS_ORIGINS: '["http://localhost:3000","http://localhost:5173"]'
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:
