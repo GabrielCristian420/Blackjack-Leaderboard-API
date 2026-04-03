@@ -146,7 +146,9 @@ def check_write_rate_limit(request: Request):
     response_model=schemas.TokenResponse,
     tags=["auth"],
     summary="Get a JWT access token",
-    responses={401: {"model": schemas.ErrorResponse, "description": "Invalid credentials"}},
+    responses={
+        401: {"model": schemas.ErrorResponse, "description": "Invalid credentials"}
+    },
 )
 def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
