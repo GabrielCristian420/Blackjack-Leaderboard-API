@@ -169,13 +169,6 @@ Then open:
 
 `http://localhost:3000/demo/index.html`
 
-## Why this project works well for a CV
-
-- It shows a real backend architecture, not just CRUD endpoints.
-- It includes auth, validation, rate limiting, and observability basics.
-- It has automated tests and Docker support.
-- It is easy to demo quickly during an interview or screening.
-
 ## Notes
 
 - Swagger UI is available at `/docs`.
